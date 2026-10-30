@@ -41,9 +41,9 @@ import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.openagnes.app.R
 import com.openagnes.app.model.Skill
+import com.openagnes.app.util.ImageUtil
 import com.openagnes.app.viewmodel.EditUiState
 import com.openagnes.app.viewmodel.EditViewModel
-import coil.compose.AsyncImage
 
 @Composable
 fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
@@ -76,8 +76,10 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
                     )
                 } ?: run {
                     state.imageUri?.let {
-                        AsyncImage(
-                            model = it,
+                        androidx.compose.foundation.Image(
+                            imageBitmap = ImageBitmap(
+                                ImageUtil.loadBitmap(LocalContext.current, it)
+                            ),
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit
