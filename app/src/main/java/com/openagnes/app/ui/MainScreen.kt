@@ -1,5 +1,6 @@
 package com.openagnes.app.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
@@ -29,10 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
@@ -44,6 +42,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openagnes.app.R
+import com.openagnes.app.viewmodel.EditUiState
 import com.openagnes.app.viewmodel.EditViewModel
 import kotlinx.coroutines.launch
 
@@ -51,13 +50,36 @@ import kotlinx.coroutines.launch
 @Composable
 fun MainScreen(viewModel: EditViewModel) {
     val state by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) { viewModel.initApiKeyStore() }
+    BackHandler(enabled = state.editorOpen) { viewModel.closeEditor() }
+
+    when {
+        state.editorOpen -> EditImageScreen(
+            state = state,
+            onPromptChange = viewModel::onPromptChange,
+            onQuickPrompt = viewModel::applyQuickPrompt,
+            onSend = viewModel::submitEditor,
+            onClose = viewModel::closeEditor
+        )
+        else -> HomeScreen(viewModel, state)
+    }
+
+    ApiKeyDialog(
+        visible = state.showApiKeyDialog,
+        onDismiss = viewModel::dismissApiKeyDialog,
+        onSave = viewModel::onApiKeySaved
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeScreen(viewModel: EditViewModel, state: EditUiState) {
     val scope = rememberCoroutineScope()
-    var showApiKeyDialog by remember { mutableStateOf(false) }
 
     val pickLauncher = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
         if (uri != null) viewModel.onImagePicked(uri)
     }
-    LaunchedEffect(Unit) { viewModel.initApiKeyStore() }
 
     Scaffold(
         containerColor = AgnesColors.Background,
@@ -72,7 +94,7 @@ fun MainScreen(viewModel: EditViewModel) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { showApiKeyDialog = true }) {
+                    IconButton(onClick = { viewModel.requestApiKeyDialog() }) {
                         Icon(
                             painter = painterResource(R.drawable.ic_menu),
                             contentDescription = LocalContext.current.resString(R.string.menu_api_key),
@@ -110,15 +132,6 @@ fun MainScreen(viewModel: EditViewModel) {
             EditScreen(viewModel = viewModel, state = state)
         }
     }
-
-    ApiKeyDialog(
-        visible = showApiKeyDialog,
-        onDismiss = { showApiKeyDialog = false },
-        onSave = { key ->
-            viewModel.saveApiKey(key)
-            showApiKeyDialog = false
-        }
-    )
 }
 
 @Composable

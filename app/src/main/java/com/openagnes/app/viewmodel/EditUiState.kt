@@ -19,5 +19,7 @@ data class EditUiState(
     val error: String? = null,
     val message: String? = null,
     val thoughtSeconds: Int = 0,
-    val skills: List<Skill> = emptyList()
+    val skills: List<Skill> = emptyList(),
+    val editorOpen: Boolean = false,
+    val showApiKeyDialog: Boolean = false
 )

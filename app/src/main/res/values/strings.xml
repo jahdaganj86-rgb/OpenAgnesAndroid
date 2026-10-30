@@ -38,4 +38,13 @@
     <string name="error_general">Fehler: %s</string>
     <string name="error_network">Netzwerkfehler. Bitte versuchen Sie es erneut.</string>
     <string name="saved_media">Bild im Medienspeicher gespeichert</string>
+    <string name="editor_title">Edit Image</string>
+    <string name="editor_prompt_placeholder">Describe the image you want to edit</string>
+    <string name="quick_action_upscale">HQ Upscale</string>
+    <string name="quick_action_remove_bg">Remove BG</string>
+    <string name="quick_action_text_edit">Text Edit</string>
+    <string name="quick_prompt_upscale">Upscale the image to high quality.</string>
+    <string name="quick_prompt_remove_bg">Remove the background.</string>
+    <string name="quick_prompt_text_edit">Change the text in the image.</string>
+    <string name="action_close">Close</string>
 </resources>

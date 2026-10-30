@@ -26,46 +26,117 @@ class EditViewModel(application: Application) : ViewModel() {
     private val _uiState = MutableStateFlow(EditUiState())
     val uiState: StateFlow<EditUiState> = _uiState.asStateFlow()
 
+    private var stateBeforeEditor: EditUiState? = null
+
     fun initApiKeyStore() {
         ApiKeyStore.init(appContext)
     }
 
-    fun saveApiKey(key: String): Boolean = ApiKeyStore.saveApiKey(key)
-
     fun getStoredApiKey(): String? = ApiKeyStore.getApiKey()
 
     fun onImagePicked(uri: Uri) {
+        stateBeforeEditor = _uiState.value
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val bitmap = ImageUtil.loadBitmap(appContext, uri)
-                val scaled = ImageUtil.scaleDown(bitmap)
-                val ratio = ImageUtil.detectRatio(scaled.width, scaled.height)
-                val dataUri = ImageUtil.bitmapToDataUri(scaled)
+            try {
+                withContext(Dispatchers.IO) {
+                    val bitmap = ImageUtil.loadBitmap(appContext, uri)
+                    val scaled = ImageUtil.scaleDown(bitmap)
+                    val ratio = ImageUtil.detectRatio(scaled.width, scaled.height)
+                    val dataUri = ImageUtil.bitmapToDataUri(scaled)
+                    _uiState.update {
+                        it.copy(
+                            imageUri = uri,
+                            previewBitmap = scaled,
+                            imageDataUri = dataUri,
+                            ratio = ratio,
+                            prompt = "",
+                            enhancedPrompt = null,
+                            originalPrompt = null,
+                            skills = emptyList(),
+                            resultB64 = null,
+                            resultBitmap = null,
+                            submitted = false,
+                            loading = false,
+                            message = null,
+                            error = null,
+                            showApiKeyDialog = false,
+                            editorOpen = true
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("EditViewModel", "Image load failed", e)
+                stateBeforeEditor = null
                 _uiState.update {
-                    it.copy(
-                        imageUri = uri,
-                        previewBitmap = scaled,
-                        imageDataUri = dataUri,
-                        ratio = ratio,
-                        error = null,
-                        submitted = false,
-                        originalPrompt = null,
-                        enhancedPrompt = null,
-                        skills = emptyList(),
-                        resultB64 = null,
-                        resultBitmap = null
-                    )
+                    it.copy(error = e.message ?: resString(R.string.error_general, "Unbekannt"))
                 }
             }
+        }
+    }
+
+    private fun openEditor() {
+        stateBeforeEditor = _uiState.value
+        _uiState.update { it.copy(editorOpen = true) }
+    }
+
+    fun closeEditor() {
+        val snapshot = stateBeforeEditor
+        _uiState.value = snapshot?.copy(editorOpen = false, showApiKeyDialog = false)
+            ?: EditUiState()
+        stateBeforeEditor = null
+    }
+
+    fun requestApiKeyDialog() {
+        _uiState.update { it.copy(showApiKeyDialog = true) }
+    }
+
+    fun dismissApiKeyDialog() {
+        _uiState.update { it.copy(showApiKeyDialog = false) }
+    }
+
+    fun onApiKeySaved(key: String) {
+        val saved = ApiKeyStore.saveApiKey(key)
+        _uiState.update {
+            it.copy(
+                showApiKeyDialog = false,
+                error = if (saved) null else resString(R.string.error_no_key)
+            )
+        }
+    }
+
+    fun applyQuickPrompt(text: String) {
+        _uiState.update { it.copy(prompt = text, error = null) }
+    }
+
+    fun submitEditor() {
+        val state = _uiState.value
+        if (state.loading) return
+        if (ApiKeyStore.getApiKey().isNullOrBlank()) {
+            _uiState.update { it.copy(showApiKeyDialog = true) }
+            return
+        }
+        if (state.prompt.isBlank()) return
+        stateBeforeEditor = null
+        _uiState.update { it.copy(editorOpen = false, showApiKeyDialog = false) }
+        viewModelScope.launch {
+            enhance()
+            generate()
         }
     }
 
     fun useResultAsSource() {
         val state = _uiState.value
         val b64 = state.resultB64 ?: return
-        val bitmap = ImageUtil.dataUriToBitmap(b64)
+        val bitmap = try {
+            ImageUtil.dataUriToBitmap(b64)
+        } catch (e: Exception) {
+            Log.e("EditViewModel", "Result decode failed", e)
+            _uiState.update { it.copy(error = e.message ?: resString(R.string.error_general, "Unbekannt")) }
+            return
+        }
         val ratio = ImageUtil.detectRatio(bitmap.width, bitmap.height)
         val scaled = ImageUtil.scaleDown(bitmap)
+        openEditor()
         _uiState.update {
             it.copy(
                 previewBitmap = scaled,
@@ -73,6 +144,12 @@ class EditViewModel(application: Application) : ViewModel() {
                 ratio = ratio,
                 resultB64 = null,
                 resultBitmap = null,
+                prompt = "",
+                originalPrompt = null,
+                enhancedPrompt = null,
+                skills = emptyList(),
+                loading = false,
+                message = null,
                 error = null
             )
         }

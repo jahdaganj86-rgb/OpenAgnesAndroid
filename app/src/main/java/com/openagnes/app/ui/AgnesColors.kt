@@ -15,4 +15,7 @@ object AgnesColors {
     val Accent = Color(0xFFBB86FC)
     val Divider = Color(0xFF2C2C2E)
     val Error = Color(0xFFCF6679)
+    val EditorPanel = Color(0xFF1A1A1A)
+    val EditorChipBorder = Color(0xFF3A3A3C)
+    val EditorSendButton = Color(0xFF4A4A4D)
 }

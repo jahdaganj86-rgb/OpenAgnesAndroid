@@ -1,9 +1,12 @@
 package com.openagnes.app.util
 
+import android.content.ContentResolver
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
@@ -18,9 +21,58 @@ object ImageUtil {
     const val JPEG_QUALITY = 85
 
     fun loadBitmap(context: Context, uri: Uri): Bitmap {
-        val input = context.contentResolver.openInputStream(uri)
+        val resolver = context.contentResolver
+
+        val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        val boundsStream = resolver.openInputStream(uri)
             ?: throw IOException("Cannot open image URI: $uri")
-        return input.use { BitmapFactory.decodeStream(it) }
+        boundsStream.use { BitmapFactory.decodeStream(it, null, boundsOptions) }
+        val outWidth = boundsOptions.outWidth
+        val outHeight = boundsOptions.outHeight
+        if (outWidth <= 0 || outHeight <= 0) {
+            throw IOException("Cannot decode image bounds: $uri")
+        }
+
+        val maxDimension = maxOf(outWidth, outHeight)
+        var sampleSize = 1
+        while (maxDimension / sampleSize >= MAX_EDGE * 2) {
+            sampleSize *= 2
+        }
+
+        val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+        val decodeStream = resolver.openInputStream(uri)
+            ?: throw IOException("Cannot open image URI: $uri")
+        val decoded = decodeStream.use { BitmapFactory.decodeStream(it, null, decodeOptions) }
+            ?: throw IOException("Cannot decode image URI: $uri")
+
+        val rotation = readRotationDegrees(resolver, uri)
+        return if (rotation == 0) {
+            decoded
+        } else {
+            val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+            Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
+        }
+    }
+
+    private fun readRotationDegrees(resolver: ContentResolver, uri: Uri): Int {
+        return try {
+            val stream = resolver.openInputStream(uri) ?: return 0
+            stream.use {
+                val exif = ExifInterface(it)
+                val orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                )
+                when (orientation) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> 90
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270
+                    else -> 0
+                }
+            }
+        } catch (e: Exception) {
+            0
+        }
     }
 
     fun scaleDown(bitmap: Bitmap, maxEdge: Int = MAX_EDGE): Bitmap {
@@ -49,6 +101,7 @@ object ImageUtil {
         val base64 = dataUri.substringAfter("base64,")
         val bytes = Base64.decode(base64, Base64.DEFAULT)
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            ?: throw IOException("Cannot decode image data URI")
     }
 
     fun detectRatio(width: Int, height: Int): String {
