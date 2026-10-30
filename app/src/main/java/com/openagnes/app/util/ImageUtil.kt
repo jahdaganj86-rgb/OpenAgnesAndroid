@@ -119,6 +119,19 @@ object ImageUtil {
         return ratios.entries.minBy { abs(it.value - ar) }!!.key
     }
 
+    fun detectVideoRatio(width: Int, height: Int): String {
+        val ar = width.toDouble() / height.coerceAtLeast(1)
+        val ratios = mapOf(
+            "21:9" to 2.3333,
+            "16:9" to 1.7778,
+            "4:3" to 1.3333,
+            "1:1" to 1.0,
+            "3:4" to 0.75,
+            "9:16" to 0.5625
+        )
+        return ratios.entries.minBy { abs(it.value - ar) }!!.key
+    }
+
     fun saveToMediaStore(context: Context, bitmap: Bitmap, title: String): Uri {
         val values = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, title)

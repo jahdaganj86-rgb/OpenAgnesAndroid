@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.openagnes.app.R
 import com.openagnes.app.viewmodel.EditUiState
+import com.openagnes.app.viewmodel.GenerationMode
 
 @Composable
 fun EditImageScreen(
@@ -62,6 +63,11 @@ fun EditImageScreen(
     onClose: () -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
+    val mode = state.mode
+    val placeholder = stringResource(
+        if (mode == GenerationMode.VIDEO) R.string.video_editor_placeholder
+        else R.string.editor_prompt_placeholder
+    )
 
     val upscaleLabel = stringResource(R.string.quick_action_upscale)
     val removeBgLabel = stringResource(R.string.quick_action_remove_bg)
@@ -69,6 +75,14 @@ fun EditImageScreen(
     val upscalePrompt = stringResource(R.string.quick_prompt_upscale)
     val removeBgPrompt = stringResource(R.string.quick_prompt_remove_bg)
     val textEditPrompt = stringResource(R.string.quick_prompt_text_edit)
+
+    val animateLabel = stringResource(R.string.video_quick_action_animate)
+    val cinematicLabel = stringResource(R.string.video_quick_action_cinematic)
+    val slowmoLabel = stringResource(R.string.video_quick_action_slowmo)
+    val animatePrompt = stringResource(R.string.video_quick_prompt_animate)
+    val cinematicPrompt = stringResource(R.string.video_quick_prompt_cinematic)
+    val slowmoPrompt = stringResource(R.string.video_quick_prompt_slowmo)
+    val outputHint = stringResource(R.string.video_output_hint, state.videoRatio)
 
     Column(
         modifier = Modifier
@@ -95,7 +109,10 @@ fun EditImageScreen(
                 )
             }
             Text(
-                text = stringResource(R.string.editor_title),
+                text = stringResource(
+                    if (mode == GenerationMode.VIDEO) R.string.video_editor_title
+                    else R.string.editor_title
+                ),
                 modifier = Modifier.align(Alignment.Center),
                 color = AgnesColors.TextPrimary,
                 fontSize = 18.sp,
@@ -137,30 +154,58 @@ fun EditImageScreen(
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        QuickChip(
-                            iconRes = R.drawable.ic_sparkle,
-                            label = upscaleLabel,
-                            onClick = {
-                                onQuickPrompt(upscalePrompt)
-                                focusRequester.requestFocus()
-                            }
-                        )
-                        QuickChip(
-                            iconRes = R.drawable.ic_remove_bg,
-                            label = removeBgLabel,
-                            onClick = {
-                                onQuickPrompt(removeBgPrompt)
-                                focusRequester.requestFocus()
-                            }
-                        )
-                        QuickChip(
-                            iconRes = R.drawable.ic_text_edit,
-                            label = textEditLabel,
-                            onClick = {
-                                onQuickPrompt(textEditPrompt)
-                                focusRequester.requestFocus()
-                            }
-                        )
+                        if (mode == GenerationMode.VIDEO) {
+                            QuickChip(
+                                iconRes = R.drawable.ic_video,
+                                label = animateLabel,
+                                onClick = {
+                                    onQuickPrompt(animatePrompt)
+                                    focusRequester.requestFocus()
+                                }
+                            )
+                            QuickChip(
+                                iconRes = R.drawable.ic_sparkle,
+                                label = cinematicLabel,
+                                onClick = {
+                                    onQuickPrompt(cinematicPrompt)
+                                    focusRequester.requestFocus()
+                                }
+                            )
+                            QuickChip(
+                                iconRes = R.drawable.ic_rotate,
+                                label = slowmoLabel,
+                                onClick = {
+                                    onQuickPrompt(slowmoPrompt)
+                                    focusRequester.requestFocus()
+                                }
+                            )
+                            VideoOutputChip(text = outputHint)
+                        } else {
+                            QuickChip(
+                                iconRes = R.drawable.ic_sparkle,
+                                label = upscaleLabel,
+                                onClick = {
+                                    onQuickPrompt(upscalePrompt)
+                                    focusRequester.requestFocus()
+                                }
+                            )
+                            QuickChip(
+                                iconRes = R.drawable.ic_remove_bg,
+                                label = removeBgLabel,
+                                onClick = {
+                                    onQuickPrompt(removeBgPrompt)
+                                    focusRequester.requestFocus()
+                                }
+                            )
+                            QuickChip(
+                                iconRes = R.drawable.ic_text_edit,
+                                label = textEditLabel,
+                                onClick = {
+                                    onQuickPrompt(textEditPrompt)
+                                    focusRequester.requestFocus()
+                                }
+                            )
+                        }
                     }
 
                     Spacer(Modifier.height(8.dp))
@@ -195,7 +240,7 @@ fun EditImageScreen(
                                 Box {
                                     if (state.prompt.isEmpty()) {
                                         Text(
-                                            text = stringResource(R.string.editor_prompt_placeholder),
+                                            text = placeholder,
                                             color = AgnesColors.TextSecondary,
                                             fontSize = 16.sp
                                         )
@@ -226,6 +271,27 @@ fun EditImageScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun VideoOutputChip(text: String) {
+    Surface(
+        modifier = Modifier.height(40.dp),
+        shape = CircleShape,
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, AgnesColors.Divider)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = text,
+                color = AgnesColors.TextSecondary,
+                fontSize = 12.sp
+            )
         }
     }
 }

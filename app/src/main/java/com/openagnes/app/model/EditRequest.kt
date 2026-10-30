@@ -37,4 +37,8 @@ data class EditImage(val b64_json: String)
 
 data class EditResponse(val data: List<EditImage>)
 
+data class EditUrl(val url: String?)
+
+data class EditUrlResponse(val data: List<EditUrl>)
+
 data class Skill(val name: String, val chars: Int)

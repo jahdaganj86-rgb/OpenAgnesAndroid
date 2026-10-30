@@ -95,14 +95,7 @@ fun ResultScreen(
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            ActionIcon(R.drawable.ic_like, context.resString(R.string.action_like))
-            ActionIcon(R.drawable.ic_dislike, context.resString(R.string.action_dislike))
-            ActionIcon(R.drawable.ic_bookmark, context.resString(R.string.action_bookmark))
-            ActionIcon(R.drawable.ic_copy, context.resString(R.string.action_copy))
-            ActionIcon(R.drawable.ic_external, context.resString(R.string.action_share))
-            ActionIcon(R.drawable.ic_rotate, context.resString(R.string.action_rotate))
-        }
+        ResultActionRow()
 
         Surface(
             shape = CircleShape,
@@ -134,7 +127,20 @@ fun ResultScreen(
 }
 
 @Composable
-private fun ActionIcon(iconRes: Int, label: String) {
+internal fun ResultActionRow() {
+    val context = LocalContext.current
+    Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+        ActionIcon(R.drawable.ic_like, context.resString(R.string.action_like))
+        ActionIcon(R.drawable.ic_dislike, context.resString(R.string.action_dislike))
+        ActionIcon(R.drawable.ic_bookmark, context.resString(R.string.action_bookmark))
+        ActionIcon(R.drawable.ic_copy, context.resString(R.string.action_copy))
+        ActionIcon(R.drawable.ic_external, context.resString(R.string.action_share))
+        ActionIcon(R.drawable.ic_rotate, context.resString(R.string.action_rotate))
+    }
+}
+
+@Composable
+internal fun ActionIcon(iconRes: Int, label: String) {
     Icon(
         painter = painterResource(iconRes),
         contentDescription = label,

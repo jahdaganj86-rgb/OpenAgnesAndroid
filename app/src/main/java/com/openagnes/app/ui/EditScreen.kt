@@ -15,10 +15,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,6 +40,8 @@ import com.openagnes.app.R
 import com.openagnes.app.model.Skill
 import com.openagnes.app.viewmodel.EditUiState
 import com.openagnes.app.viewmodel.EditViewModel
+import com.openagnes.app.viewmodel.GenerationMode
+import kotlinx.coroutines.delay
 
 @Composable
 fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
@@ -64,7 +69,13 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
     }
 
     if (state.enhancedPrompt != null) {
-        Bubble(text = context.resString(R.string.assistant_ack), color = AgnesColors.AssistantBubble)
+        Bubble(
+            text = context.resString(
+                if (state.mode == GenerationMode.VIDEO) R.string.assistant_ack_video
+                else R.string.assistant_ack
+            ),
+            color = AgnesColors.AssistantBubble
+        )
     }
 
     if (state.skills.isNotEmpty()) {
@@ -74,30 +85,93 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
     if (state.originalPrompt != null || state.enhancedPrompt != null) {
         PromptEnhancementCard(
             original = state.originalPrompt,
-            enhanced = state.enhancedPrompt
+            enhanced = state.enhancedPrompt,
+            subtitle = context.resString(
+                if (state.mode == GenerationMode.VIDEO) R.string.section_enhancement_subtitle_video
+                else R.string.section_enhancement_subtitle
+            )
         )
     }
 
     if (state.loading) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(16.dp),
-                strokeWidth = 2.dp,
-                color = AgnesColors.Accent
-            )
-            Text(text = "Agnes denkt nach…", color = AgnesColors.TextSecondary, fontSize = 14.sp)
+        if (state.mode == GenerationMode.VIDEO && state.enhancedPrompt != null) {
+            VideoLoading(progress = state.videoProgress)
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = AgnesColors.Accent
+                )
+                Text(text = "Agnes denkt nach…", color = AgnesColors.TextSecondary, fontSize = 14.sp)
+            }
         }
     }
 
-    if (state.resultBitmap != null) {
+    if (state.videoUrl != null) {
+        VideoResultScreen(
+            state = state,
+            onDownload = { viewModel.saveVideo() },
+            onAnimateAgain = { viewModel.reopenEditor() }
+        )
+    } else if (state.resultBitmap != null) {
         ResultScreen(
             state = state,
             onDownload = { viewModel.saveResult() },
             onEditImage = { viewModel.useResultAsSource() }
+        )
+    }
+
+    state.actionMessage?.let {
+        Text(
+            text = it,
+            color = AgnesColors.TextSecondary,
+            fontSize = 13.sp
+        )
+    }
+}
+
+@Composable
+private fun VideoLoading(progress: Int) {
+    val context = LocalContext.current
+    var elapsed by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1_000L)
+            elapsed += 1
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = context.resString(R.string.video_loading, progress.coerceIn(0, 100)),
+            color = AgnesColors.TextPrimary,
+            fontSize = 14.sp
+        )
+        if (progress > 0) {
+            LinearProgressIndicator(
+                progress = { progress.coerceIn(0, 100) / 100f },
+                modifier = Modifier.fillMaxWidth(),
+                color = AgnesColors.Accent,
+                trackColor = AgnesColors.Divider
+            )
+        } else {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth(),
+                color = AgnesColors.Accent,
+                trackColor = AgnesColors.Divider
+            )
+        }
+        Text(
+            text = context.resString(R.string.video_elapsed, elapsed),
+            color = AgnesColors.TextSecondary,
+            fontSize = 12.sp
         )
     }
 }
@@ -224,7 +298,7 @@ private fun SkillChip(name: String) {
 }
 
 @Composable
-private fun PromptEnhancementCard(original: String?, enhanced: String?) {
+private fun PromptEnhancementCard(original: String?, enhanced: String?, subtitle: String) {
     val context = LocalContext.current
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -248,7 +322,7 @@ private fun PromptEnhancementCard(original: String?, enhanced: String?) {
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = context.resString(R.string.section_enhancement_subtitle),
+                        text = subtitle,
                         color = AgnesColors.TextSecondary,
                         fontSize = 12.sp
                     )

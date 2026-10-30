@@ -4,6 +4,8 @@ import android.graphics.Bitmap
 import android.net.Uri
 import com.openagnes.app.model.Skill
 
+enum class GenerationMode { IMAGE, VIDEO }
+
 data class EditUiState(
     val imageUri: Uri? = null,
     val previewBitmap: Bitmap? = null,
@@ -18,8 +20,14 @@ data class EditUiState(
     val submitted: Boolean = false,
     val error: String? = null,
     val message: String? = null,
+    val actionMessage: String? = null,
     val thoughtSeconds: Int = 0,
     val skills: List<Skill> = emptyList(),
     val editorOpen: Boolean = false,
-    val showApiKeyDialog: Boolean = false
+    val showApiKeyDialog: Boolean = false,
+    val mode: GenerationMode = GenerationMode.IMAGE,
+    val videoRatio: String = "1:1",
+    val videoUrl: String? = null,
+    val videoProgress: Int = 0,
+    val videoSaving: Boolean = false
 )

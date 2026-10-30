@@ -8,11 +8,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -30,12 +36,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -44,7 +51,7 @@ import androidx.compose.ui.unit.sp
 import com.openagnes.app.R
 import com.openagnes.app.viewmodel.EditUiState
 import com.openagnes.app.viewmodel.EditViewModel
-import kotlinx.coroutines.launch
+import com.openagnes.app.viewmodel.GenerationMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +66,7 @@ fun MainScreen(viewModel: EditViewModel) {
             state = state,
             onPromptChange = viewModel::onPromptChange,
             onQuickPrompt = viewModel::applyQuickPrompt,
-            onSend = viewModel::submitEditor,
+            onSend = viewModel::submit,
             onClose = viewModel::closeEditor
         )
         else -> HomeScreen(viewModel, state)
@@ -75,7 +82,7 @@ fun MainScreen(viewModel: EditViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeScreen(viewModel: EditViewModel, state: EditUiState) {
-    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val pickLauncher = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
         if (uri != null) viewModel.onImagePicked(uri)
@@ -84,33 +91,44 @@ private fun HomeScreen(viewModel: EditViewModel, state: EditUiState) {
     Scaffold(
         containerColor = AgnesColors.Background,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = LocalContext.current.resString(R.string.app_title),
-                        color = AgnesColors.TextPrimary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { viewModel.requestApiKeyDialog() }) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_menu),
-                            contentDescription = LocalContext.current.resString(R.string.menu_api_key),
-                            tint = AgnesColors.TextPrimary
+            Column {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = context.resString(R.string.app_title),
+                            color = AgnesColors.TextPrimary,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = AgnesColors.Background)
-            )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.requestApiKeyDialog() }) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_menu),
+                                contentDescription = context.resString(R.string.menu_api_key),
+                                tint = AgnesColors.TextPrimary
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = AgnesColors.Background)
+                )
+                ModeSwitch(
+                    mode = state.mode,
+                    enabled = !state.loading,
+                    onModeChange = viewModel::onModeChange
+                )
+            }
         },
         bottomBar = {
             TypeBar(
                 prompt = state.prompt,
+                placeholder = context.resString(
+                    if (state.mode == GenerationMode.VIDEO) R.string.video_type_placeholder
+                    else R.string.type_placeholder
+                ),
                 onPromptChange = { viewModel.onPromptChange(it) },
                 onPickImage = { pickLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) },
-                onSend = { scope.launch { viewModel.enhance(); viewModel.generate() } }
+                onSend = viewModel::submit
             )
         }
     ) { padding ->
@@ -137,6 +155,7 @@ private fun HomeScreen(viewModel: EditViewModel, state: EditUiState) {
 @Composable
 private fun TypeBar(
     prompt: String,
+    placeholder: String,
     onPromptChange: (String) -> Unit,
     onPickImage: () -> Unit,
     onSend: () -> Unit
@@ -182,7 +201,7 @@ private fun TypeBar(
                             Box {
                                 if (prompt.isEmpty()) {
                                     Text(
-                                        text = context.resString(R.string.type_placeholder),
+                                        text = placeholder,
                                         color = AgnesColors.TextSecondary,
                                         fontSize = 16.sp
                                     )
@@ -202,6 +221,87 @@ private fun TypeBar(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ModeSwitch(
+    mode: GenerationMode,
+    enabled: Boolean,
+    onModeChange: (GenerationMode) -> Unit
+) {
+    val context = LocalContext.current
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = CircleShape,
+        color = AgnesColors.AssistantBubble
+    ) {
+        Row(
+            modifier = Modifier.padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            ModeSegment(
+                modifier = Modifier.weight(1f),
+                selected = mode == GenerationMode.IMAGE,
+                enabled = enabled,
+                iconRes = R.drawable.ic_edit,
+                label = context.resString(R.string.mode_edit_image),
+                onClick = { onModeChange(GenerationMode.IMAGE) }
+            )
+            ModeSegment(
+                modifier = Modifier.weight(1f),
+                selected = mode == GenerationMode.VIDEO,
+                enabled = enabled,
+                iconRes = R.drawable.ic_video,
+                label = context.resString(R.string.mode_photo_to_video),
+                onClick = { onModeChange(GenerationMode.VIDEO) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModeSegment(
+    modifier: Modifier,
+    selected: Boolean,
+    enabled: Boolean,
+    iconRes: Int,
+    label: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .height(36.dp)
+            .selectable(
+                selected = selected,
+                enabled = enabled,
+                role = Role.Tab,
+                onClick = onClick
+            ),
+        shape = CircleShape,
+        color = if (selected) AgnesColors.Chip else Color.Transparent
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = if (selected) AgnesColors.TextPrimary else AgnesColors.TextSecondary
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = label,
+                color = if (selected) AgnesColors.TextPrimary else AgnesColors.TextSecondary,
+                fontSize = 14.sp,
+                maxLines = 1
+            )
         }
     }
 }

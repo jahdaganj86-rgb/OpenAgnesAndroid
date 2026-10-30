@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 object ApiClient {
     private const val BASE_URL = "https://apihub.agnes-ai.com/v1/"
 
-    private val logging = HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY)
+    private val logging = HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BASIC)
     private val client = OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
