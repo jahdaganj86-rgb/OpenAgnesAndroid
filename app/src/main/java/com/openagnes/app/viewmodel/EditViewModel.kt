@@ -48,6 +48,10 @@ class EditViewModel(application: Application) : ViewModel() {
                         imageDataUri = dataUri,
                         ratio = ratio,
                         error = null,
+                        submitted = false,
+                        originalPrompt = null,
+                        enhancedPrompt = null,
+                        skills = emptyList(),
                         resultB64 = null,
                         resultBitmap = null
                     )
@@ -88,7 +92,7 @@ class EditViewModel(application: Application) : ViewModel() {
             _uiState.update { it.copy(error = "Bitte wählen Sie zuerst ein Bild aus.") }
             return
         }
-        _uiState.update { it.copy(loading = true, error = null) }
+        _uiState.update { it.copy(loading = true, submitted = true, error = null) }
         val start = System.currentTimeMillis()
         try {
             val enhanced = withContext(Dispatchers.IO) {
@@ -102,8 +106,9 @@ class EditViewModel(application: Application) : ViewModel() {
                     originalPrompt = state.prompt,
                     thoughtSeconds = seconds,
                     skills = listOf(
-                        Skill("Original prompt", state.prompt.length),
-                        Skill("Enhanced prompt", enhanced.length)
+                        Skill("image-generation", 8078),
+                        Skill("image-generation / reference", 5429),
+                        Skill("image-prompt-craft", 15387)
                     ),
                     message = resString(R.string.thoughts_complete, seconds)
                 )

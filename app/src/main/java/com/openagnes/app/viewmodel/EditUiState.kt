@@ -15,6 +15,7 @@ data class EditUiState(
     val resultB64: String? = null,
     val resultBitmap: Bitmap? = null,
     val loading: Boolean = false,
+    val submitted: Boolean = false,
     val error: String? = null,
     val message: String? = null,
     val thoughtSeconds: Int = 0,

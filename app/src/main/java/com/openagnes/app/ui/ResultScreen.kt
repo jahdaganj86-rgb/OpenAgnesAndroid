@@ -1,39 +1,44 @@
 package com.openagnes.app.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.openagnes.app.R
 import com.openagnes.app.viewmodel.EditUiState
-import com.openagnes.app.viewmodel.EditViewModel
 
 @Composable
 fun ResultScreen(
-    viewModel: EditViewModel,
     state: EditUiState,
-    onEditImage: () -> Unit,
-    onDownload: () -> Unit
+    onDownload: () -> Unit,
+    onEditImage: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -41,69 +46,99 @@ fun ResultScreen(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth().height(340.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF121212))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            color = AgnesColors.AssistantBubble
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                state.resultBitmap?.let {
-                    Image(
-                        it.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
-                }
-                IconButton(
-                    onClick = onDownload,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
-                ) {
-                    Icon(
-                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_download),
-                        contentDescription = context.resString(R.string.action_download)
-                    )
-                }
-            }
-        }
-
-        Text(
-            text = state.message ?: context.resString(R.string.result_done),
-            style = MaterialTheme.typography.titleLarge,
-            color = Color(0xFF03DAC6)
-        )
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val actions = listOf(
-                R.drawable.ic_like to context.resString(R.string.action_like),
-                R.drawable.ic_dislike to context.resString(R.string.action_dislike),
-                R.drawable.ic_bookmark to context.resString(R.string.action_bookmark),
-                R.drawable.ic_share to context.resString(R.string.action_share),
-                R.drawable.ic_rotate to context.resString(R.string.action_rotate)
+            Text(
+                text = context.resString(R.string.result_done),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                color = AgnesColors.TextPrimary,
+                fontSize = 15.sp
             )
-            actions.forEach { (iconRes, label) ->
-                IconButton(onClick = { }) {
-                    Icon(
-                        painter = androidx.compose.ui.res.painterResource(iconRes),
-                        contentDescription = label
-                    )
+        }
+
+        Box(modifier = Modifier.fillMaxWidth()) {
+            state.resultBitmap?.let { bitmap ->
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(360.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            IconButton(
+                onClick = onDownload,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(10.dp)
+                    .size(36.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0x99000000),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_download),
+                            contentDescription = context.resString(R.string.action_download),
+                            modifier = Modifier.size(18.dp),
+                            tint = AgnesColors.TextPrimary
+                        )
+                    }
                 }
             }
         }
 
-        Button(
-            onClick = {
-                viewModel.useResultAsSource()
-                onEditImage()
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(text = context.resString(R.string.button_edit_image))
+        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            ActionIcon(R.drawable.ic_like, context.resString(R.string.action_like))
+            ActionIcon(R.drawable.ic_dislike, context.resString(R.string.action_dislike))
+            ActionIcon(R.drawable.ic_bookmark, context.resString(R.string.action_bookmark))
+            ActionIcon(R.drawable.ic_copy, context.resString(R.string.action_copy))
+            ActionIcon(R.drawable.ic_external, context.resString(R.string.action_share))
+            ActionIcon(R.drawable.ic_rotate, context.resString(R.string.action_rotate))
         }
 
-        Text(
-            text = context.resString(R.string.footer_type),
-            style = MaterialTheme.typography.titleMedium,
-            color = Color(0xFFBB86FC)
-        )
+        Surface(
+            shape = CircleShape,
+            color = Color.Transparent,
+            modifier = Modifier
+                .border(1.dp, AgnesColors.Divider, CircleShape)
+                .clickable { onEditImage() }
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_edit),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = AgnesColors.TextPrimary
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = context.resString(R.string.button_edit_image),
+                    color = AgnesColors.TextPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun ActionIcon(iconRes: Int, label: String) {
+    Icon(
+        painter = painterResource(iconRes),
+        contentDescription = label,
+        modifier = Modifier.size(22.dp),
+        tint = AgnesColors.TextSecondary
+    )
 }
