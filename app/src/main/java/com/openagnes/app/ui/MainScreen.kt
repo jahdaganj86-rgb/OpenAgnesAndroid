@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
@@ -123,8 +124,11 @@ private fun HomeScreen(viewModel: EditViewModel, state: EditUiState) {
             TypeBar(
                 prompt = state.prompt,
                 placeholder = context.resString(
-                    if (state.mode == GenerationMode.VIDEO) R.string.video_type_placeholder
-                    else R.string.type_placeholder
+                    when (state.mode) {
+                        GenerationMode.CREATE -> R.string.create_type_placeholder
+                        GenerationMode.VIDEO -> R.string.video_type_placeholder
+                        GenerationMode.IMAGE -> R.string.type_placeholder
+                    }
                 ),
                 onPromptChange = { viewModel.onPromptChange(it) },
                 onPickImage = { pickLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) },
@@ -240,11 +244,21 @@ private fun ModeSwitch(
         color = AgnesColors.AssistantBubble
     ) {
         Row(
-            modifier = Modifier.padding(4.dp),
+            modifier = Modifier
+                .padding(4.dp)
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             ModeSegment(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier,
+                selected = mode == GenerationMode.CREATE,
+                enabled = enabled,
+                iconRes = R.drawable.ic_sparkle,
+                label = context.resString(R.string.mode_create_image),
+                onClick = { onModeChange(GenerationMode.CREATE) }
+            )
+            ModeSegment(
+                modifier = Modifier,
                 selected = mode == GenerationMode.IMAGE,
                 enabled = enabled,
                 iconRes = R.drawable.ic_edit,
@@ -252,7 +266,7 @@ private fun ModeSwitch(
                 onClick = { onModeChange(GenerationMode.IMAGE) }
             )
             ModeSegment(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier,
                 selected = mode == GenerationMode.VIDEO,
                 enabled = enabled,
                 iconRes = R.drawable.ic_video,
@@ -300,7 +314,8 @@ private fun ModeSegment(
                 text = label,
                 color = if (selected) AgnesColors.TextPrimary else AgnesColors.TextSecondary,
                 fontSize = 14.sp,
-                maxLines = 1
+                maxLines = 1,
+                softWrap = false
             )
         }
     }

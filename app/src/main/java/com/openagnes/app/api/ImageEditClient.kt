@@ -1,6 +1,7 @@
 package com.openagnes.app.api
 
 import com.google.gson.Gson
+import com.openagnes.app.model.CreateImageRequest
 import com.openagnes.app.model.EditRequest
 import com.openagnes.app.model.EditResponse
 import com.openagnes.app.model.EditUrlResponse
@@ -41,6 +42,25 @@ class ImageEditClient private constructor(
         return gson.fromJson(responseBody, EditResponse::class.java)
             .data.firstOrNull()?.b64_json
             ?: throw IOException("No image returned by edit API")
+    }
+
+    suspend fun create(apiKey: String, request: CreateImageRequest): String {
+        val json = gson.toJson(request)
+        val body = json.toRequestBody("application/json".toMediaType())
+        val httpRequest = Request.Builder()
+            .url("https://apihub.agnes-ai.com/v1/images/generations")
+            .header("Authorization", "Bearer $apiKey")
+            .header("Content-Type", "application/json")
+            .post(body)
+            .build()
+        val response = client.newCall(httpRequest).execute()
+        if (!response.isSuccessful) {
+            throw IOException("Image create failed: ${response.code} ${response.body?.string() ?: ""}")
+        }
+        val responseBody = response.body?.string() ?: throw IOException("Empty image create response")
+        return gson.fromJson(responseBody, EditResponse::class.java)
+            .data.firstOrNull()?.b64_json
+            ?: throw IOException("No image returned by create API")
     }
 
     suspend fun editForUrl(apiKey: String, dataUri: String, ratio: String): String {

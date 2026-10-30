@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -38,7 +38,9 @@ import com.openagnes.app.viewmodel.EditUiState
 fun ResultScreen(
     state: EditUiState,
     onDownload: () -> Unit,
-    onEditImage: () -> Unit
+    onEditImage: () -> Unit,
+    doneText: String,
+    actionLabel: String
 ) {
     val context = LocalContext.current
 
@@ -52,7 +54,7 @@ fun ResultScreen(
             color = AgnesColors.AssistantBubble
         ) {
             Text(
-                text = context.resString(R.string.result_done),
+                text = doneText,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 color = AgnesColors.TextPrimary,
                 fontSize = 15.sp
@@ -66,7 +68,7 @@ fun ResultScreen(
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(360.dp)
+                        .aspectRatio(bitmap.width.toFloat() / bitmap.height.coerceAtLeast(1))
                         .clip(RoundedCornerShape(16.dp)),
                     contentScale = ContentScale.Crop
                 )
@@ -116,7 +118,7 @@ fun ResultScreen(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = context.resString(R.string.button_edit_image),
+                    text = actionLabel,
                     color = AgnesColors.TextPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium

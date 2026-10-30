@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import com.openagnes.app.model.Skill
 
-enum class GenerationMode { IMAGE, VIDEO }
+enum class GenerationMode { CREATE, IMAGE, VIDEO }
 
 data class EditUiState(
     val imageUri: Uri? = null,

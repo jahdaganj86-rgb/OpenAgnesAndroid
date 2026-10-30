@@ -33,6 +33,17 @@ data class EditRequest(
     val extra_body: ExtraBody
 )
 
+data class CreateExtraBody(
+    val response_format: String = "b64_json"
+)
+
+data class CreateImageRequest(
+    val model: String = "agnes-image-2.1-flash",
+    val prompt: String,
+    val size: String = "1664x2496",
+    val extra_body: CreateExtraBody = CreateExtraBody()
+)
+
 data class EditImage(val b64_json: String)
 
 data class EditResponse(val data: List<EditImage>)

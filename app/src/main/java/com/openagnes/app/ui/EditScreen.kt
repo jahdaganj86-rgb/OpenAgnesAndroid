@@ -71,8 +71,11 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
     if (state.enhancedPrompt != null) {
         Bubble(
             text = context.resString(
-                if (state.mode == GenerationMode.VIDEO) R.string.assistant_ack_video
-                else R.string.assistant_ack
+                when (state.mode) {
+                    GenerationMode.CREATE -> R.string.assistant_ack_create
+                    GenerationMode.VIDEO -> R.string.assistant_ack_video
+                    GenerationMode.IMAGE -> R.string.assistant_ack
+                }
             ),
             color = AgnesColors.AssistantBubble
         )
@@ -87,8 +90,11 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
             original = state.originalPrompt,
             enhanced = state.enhancedPrompt,
             subtitle = context.resString(
-                if (state.mode == GenerationMode.VIDEO) R.string.section_enhancement_subtitle_video
-                else R.string.section_enhancement_subtitle
+                when (state.mode) {
+                    GenerationMode.CREATE -> R.string.section_enhancement_subtitle_create
+                    GenerationMode.VIDEO -> R.string.section_enhancement_subtitle_video
+                    GenerationMode.IMAGE -> R.string.section_enhancement_subtitle
+                }
             )
         )
     }
@@ -119,11 +125,23 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
             onAnimateAgain = { viewModel.reopenEditor() }
         )
     } else if (state.resultBitmap != null) {
-        ResultScreen(
-            state = state,
-            onDownload = { viewModel.saveResult() },
-            onEditImage = { viewModel.useResultAsSource() }
-        )
+        if (state.mode == GenerationMode.CREATE) {
+            ResultScreen(
+                state = state,
+                onDownload = { viewModel.saveResult() },
+                onEditImage = { viewModel.startFreshCreate() },
+                doneText = context.resString(R.string.result_done_create),
+                actionLabel = context.resString(R.string.button_create_image)
+            )
+        } else {
+            ResultScreen(
+                state = state,
+                onDownload = { viewModel.saveResult() },
+                onEditImage = { viewModel.useResultAsSource() },
+                doneText = context.resString(R.string.result_done),
+                actionLabel = context.resString(R.string.button_edit_image)
+            )
+        }
     }
 
     state.actionMessage?.let {

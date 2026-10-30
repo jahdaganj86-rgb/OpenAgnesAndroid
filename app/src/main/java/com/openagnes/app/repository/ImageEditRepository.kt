@@ -12,6 +12,7 @@ import com.openagnes.app.model.ChatContent
 import com.openagnes.app.model.ChatImageUrl
 import com.openagnes.app.model.ChatMessage
 import com.openagnes.app.model.ChatRequest
+import com.openagnes.app.model.CreateImageRequest
 import com.openagnes.app.model.EditRequest
 import com.openagnes.app.model.ExtraBody
 import com.openagnes.app.model.VideoConfig
@@ -62,6 +63,15 @@ class ImageEditRepository private constructor(
         5. Keep it concise and vivid. Do not invent new characters, objects, or scenes.
     """.trimIndent()
 
+    private val CREATE_SYSTEM_PROMPT = """
+        You are a text-to-image prompt engineer. You receive a user request and no source image.
+        1. Analyze the user request and imagine the intended image.
+        2. Write an "Enhanced Prompt" in English for text-to-image generation.
+        3. Default to a photorealistic result unless the user asks for another style.
+        4. Structure: "[subject and scene] + [clothing/pose/detail] + [style, lighting, composition, camera] + [quality]".
+        5. Be specific and vivid; do not invent elements that conflict with the request.
+    """.trimIndent()
+
     private val MAX_RETRIES = 3
 
     suspend fun enhance(apiKey: String, dataUri: String, userPrompt: String): String =
@@ -70,24 +80,32 @@ class ImageEditRepository private constructor(
     suspend fun enhanceVideo(apiKey: String, dataUri: String, userPrompt: String): String =
         enhanceInternal(VIDEO_SYSTEM_PROMPT, apiKey, dataUri, userPrompt)
 
+    suspend fun enhanceCreate(apiKey: String, userPrompt: String): String =
+        enhanceInternal(CREATE_SYSTEM_PROMPT, apiKey, null, userPrompt)
+
     private suspend fun enhanceInternal(
         systemPrompt: String,
         apiKey: String,
-        dataUri: String,
+        dataUri: String?,
         userPrompt: String
     ): String {
         var lastError: Throwable? = null
         for (attempt in 0 until MAX_RETRIES) {
             try {
                 return withContext(Dispatchers.IO) {
+                    val userContent = if (dataUri != null) {
+                        listOf(
+                            ChatContent("text", userPrompt),
+                            ChatContent("image_url", image_url = ChatImageUrl(dataUri))
+                        )
+                    } else {
+                        listOf(ChatContent("text", userPrompt))
+                    }
                     val body = ChatRequest(
                         model = "agnes-2.5-flash",
                         messages = listOf(
                             ChatMessage("system", listOf(ChatContent("text", systemPrompt))),
-                            ChatMessage("user", listOf(
-                                ChatContent("text", userPrompt),
-                                ChatContent("image_url", image_url = ChatImageUrl(dataUri))
-                            ))
+                            ChatMessage("user", userContent)
                         ),
                         temperature = 0.3
                     )
@@ -127,6 +145,28 @@ class ImageEditRepository private constructor(
                             ratio = ratio,
                             extra_body = ExtraBody(image = listOf(dataUri))
                         )
+                    )
+                }
+            } catch (e: Throwable) {
+                lastError = e
+                if (attempt < MAX_RETRIES - 1 && isRetryable(e)) {
+                    delay((1L shl (attempt + 1)) * 1000)
+                } else {
+                    throw lastError!!
+                }
+            }
+        }
+        throw lastError!!
+    }
+
+    suspend fun createImage(apiKey: String, enhancedPrompt: String): String {
+        var lastError: Throwable? = null
+        for (attempt in 0 until MAX_RETRIES) {
+            try {
+                return withContext(Dispatchers.IO) {
+                    editClient.create(
+                        apiKey,
+                        CreateImageRequest(prompt = enhancedPrompt)
                     )
                 }
             } catch (e: Throwable) {

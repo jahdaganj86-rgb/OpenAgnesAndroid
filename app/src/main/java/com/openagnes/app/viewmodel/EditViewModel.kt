@@ -72,6 +72,7 @@ class EditViewModel(application: Application) : ViewModel() {
                             actionMessage = null,
                             error = null,
                             showApiKeyDialog = false,
+                            mode = GenerationMode.IMAGE,
                             editorOpen = true
                         )
                     }
@@ -132,6 +133,9 @@ class EditViewModel(application: Application) : ViewModel() {
         _uiState.update {
             it.copy(
                 mode = mode,
+                imageUri = if (mode == GenerationMode.CREATE) null else it.imageUri,
+                previewBitmap = if (mode == GenerationMode.CREATE) null else it.previewBitmap,
+                imageDataUri = if (mode == GenerationMode.CREATE) null else it.imageDataUri,
                 resultB64 = null,
                 resultBitmap = null,
                 videoUrl = null,
@@ -155,10 +159,17 @@ class EditViewModel(application: Application) : ViewModel() {
             _uiState.update { it.copy(showApiKeyDialog = true) }
             return
         }
-        if (state.prompt.isBlank()) return
-        if (state.imageDataUri.isNullOrBlank()) {
-            _uiState.update { it.copy(error = resString(R.string.error_no_image)) }
-            return
+        if (state.mode == GenerationMode.CREATE) {
+            if (state.prompt.isBlank()) {
+                _uiState.update { it.copy(error = resString(R.string.error_no_prompt)) }
+                return
+            }
+        } else {
+            if (state.prompt.isBlank()) return
+            if (state.imageDataUri.isNullOrBlank()) {
+                _uiState.update { it.copy(error = resString(R.string.error_no_image)) }
+                return
+            }
         }
         stateBeforeEditor = null
         _uiState.update {
@@ -171,10 +182,10 @@ class EditViewModel(application: Application) : ViewModel() {
                 originalPrompt = null,
                 skills = emptyList(),
                 thoughtSeconds = 0,
-                videoUrl = if (it.mode == GenerationMode.VIDEO) null else it.videoUrl,
-                videoProgress = if (it.mode == GenerationMode.VIDEO) 0 else it.videoProgress,
-                resultB64 = if (it.mode == GenerationMode.IMAGE) null else it.resultB64,
-                resultBitmap = if (it.mode == GenerationMode.IMAGE) null else it.resultBitmap
+                videoUrl = if (it.mode == GenerationMode.IMAGE) it.videoUrl else null,
+                videoProgress = if (it.mode == GenerationMode.IMAGE) it.videoProgress else 0,
+                resultB64 = if (it.mode == GenerationMode.VIDEO) it.resultB64 else null,
+                resultBitmap = if (it.mode == GenerationMode.VIDEO) it.resultBitmap else null
             )
         }
         viewModelScope.launch {
@@ -220,6 +231,32 @@ class EditViewModel(application: Application) : ViewModel() {
         }
     }
 
+    fun startFreshCreate() {
+        _uiState.update {
+            it.copy(
+                imageUri = null,
+                previewBitmap = null,
+                imageDataUri = null,
+                prompt = "",
+                enhancedPrompt = null,
+                originalPrompt = null,
+                resultB64 = null,
+                resultBitmap = null,
+                videoUrl = null,
+                videoProgress = 0,
+                loading = false,
+                submitted = false,
+                error = null,
+                message = null,
+                actionMessage = null,
+                thoughtSeconds = 0,
+                skills = emptyList(),
+                editorOpen = false,
+                mode = GenerationMode.CREATE
+            )
+        }
+    }
+
     fun onPromptChange(text: String) {
         _uiState.update { it.copy(prompt = text, error = null) }
     }
@@ -230,7 +267,7 @@ class EditViewModel(application: Application) : ViewModel() {
             _uiState.update { it.copy(error = resString(R.string.error_no_key)) }
             return
         }
-        if (state.imageDataUri.isNullOrBlank()) {
+        if (state.mode != GenerationMode.CREATE && state.imageDataUri.isNullOrBlank()) {
             _uiState.update { it.copy(error = resString(R.string.error_no_image)) }
             return
         }
@@ -238,21 +275,25 @@ class EditViewModel(application: Application) : ViewModel() {
         val start = System.currentTimeMillis()
         try {
             val enhanced = withContext(Dispatchers.IO) {
-                if (state.mode == GenerationMode.VIDEO) {
-                    repository.enhanceVideo(key, state.imageDataUri!!, state.prompt)
-                } else {
-                    repository.enhance(key, state.imageDataUri!!, state.prompt)
+                when (state.mode) {
+                    GenerationMode.CREATE -> repository.enhanceCreate(key, state.prompt)
+                    GenerationMode.VIDEO -> repository.enhanceVideo(key, state.imageDataUri!!, state.prompt)
+                    GenerationMode.IMAGE -> repository.enhance(key, state.imageDataUri!!, state.prompt)
                 }
             }
             val seconds = ((System.currentTimeMillis() - start) / 1000).coerceAtLeast(1).toInt()
-            val skills = if (state.mode == GenerationMode.VIDEO) {
-                listOf(
+            val skills = when (state.mode) {
+                GenerationMode.CREATE -> listOf(
+                    Skill("image-generation", 8078),
+                    Skill("image-prompt-craft", 15387),
+                    Skill("image-prompt-craft / photo", 2615)
+                )
+                GenerationMode.VIDEO -> listOf(
                     Skill("video-generation", 8078),
                     Skill("image-to-video / keyframe", 5429),
                     Skill("video-prompt-craft", 15387)
                 )
-            } else {
-                listOf(
+                GenerationMode.IMAGE -> listOf(
                     Skill("image-generation", 8078),
                     Skill("image-generation / reference", 5429),
                     Skill("image-prompt-craft", 15387)
@@ -277,8 +318,32 @@ class EditViewModel(application: Application) : ViewModel() {
 
     suspend fun generate() {
         when (_uiState.value.mode) {
+            GenerationMode.CREATE -> generateCreateImage()
             GenerationMode.IMAGE -> generateImage()
             GenerationMode.VIDEO -> generateVideo()
+        }
+    }
+
+    private suspend fun generateCreateImage() {
+        val state = _uiState.value
+        val key = ApiKeyStore.getApiKey() ?: run {
+            _uiState.update { it.copy(error = resString(R.string.error_no_key)) }
+            return
+        }
+        if (state.enhancedPrompt.isNullOrBlank()) return
+        _uiState.update { it.copy(loading = true, error = null) }
+        try {
+            val b64 = withContext(Dispatchers.IO) {
+                repository.createImage(key, state.enhancedPrompt!!)
+            }
+            val bitmap = ImageUtil.dataUriToBitmap(b64)
+            _uiState.update {
+                it.copy(loading = false, resultB64 = b64, resultBitmap = bitmap, message = resString(R.string.result_done_create))
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            _uiState.update { it.copy(loading = false, error = e.message ?: resString(R.string.error_general, "Unbekannt")) }
+            Log.e("EditViewModel", "Create failed", e)
         }
     }
 
