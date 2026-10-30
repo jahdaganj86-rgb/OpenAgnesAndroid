@@ -46,11 +46,24 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
         run: |
           TAG="v${{ github.run_id }}"
-          gh release create "$TAG" \
-            --repo "${{ github.repository }}" \
-            --title "Open Agnes Debug APK" \
-            --notes "Debug build from run ${{ github.run_id }}" || true
-          gh release upload "$TAG" \
-            app/build/outputs/apk/debug/app-debug.apk \
-            --repo "${{ github.repository }}" \
-            --clobber
+          REPO="${{ github.repository }}"
+          for attempt in 1 2 3 4 5; do
+            if gh release create "$TAG" \
+              --repo "$REPO" \
+              --title "Open Agnes Debug APK" \
+              --notes "Debug build from run ${{ github.run_id }}"; then
+              break
+            fi
+            echo "gh release create failed (attempt $attempt); retrying in 10s..."
+            sleep 10
+          done
+          for attempt in 1 2 3 4 5; do
+            if gh release upload "$TAG" \
+              app/build/outputs/apk/debug/app-debug.apk \
+              --repo "$REPO" \
+              --clobber; then
+              break
+            fi
+            echo "gh release upload failed (attempt $attempt); retrying in 10s..."
+            sleep 10
+          done
