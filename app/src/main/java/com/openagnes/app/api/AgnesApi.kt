@@ -8,7 +8,7 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 
 interface AgnesApi {
-    @POST("v1/chat/completions")
+    @POST("chat/completions")
     suspend fun chatCompletions(
         @Header("Authorization") authorization: String,
         @Body request: ChatRequest
