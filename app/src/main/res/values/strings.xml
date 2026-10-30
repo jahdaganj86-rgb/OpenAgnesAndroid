@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">Open Agnes</string>
+    <string name="prompt_hint">Prompt eingeben (z. B. "Erweitere das Bild zu einem Ganzkörperfoto")</string>
+    <string name="prompt_placeholder">Beschreiben Sie die gewünschte Bildbearbeitung…</string>
+    <string name="button_select_image">Bild wählen</string>
+    <string name="selected_image">Bild gewählt</string>
+    <string name="button_generate">Bild bearbeiten</string>
+    <string name="button_edit_image">Edit Image</string>
+    <string name="button_download">Download</string>
+    <string name="menu_api_key">API-Key</string>
+    <string name="dialog_title">API-Key eingeben</string>
+    <string name="dialog_hint">sk-…</string>
+    <string name="dialog_save">Speichern</string>
+    <string name="dialog_cancel">Abbrechen</string>
+    <string name="error_no_key">Bitte geben Sie einen API-Key über das Menü ein.</string>
+    <string name="skills_header">Skills</string>
+    <string name="thoughts_complete">Thoughts complete (Takes %d second…)</string>
+    <string name="skill_loaded">Loaded %d Chars</string>
+    <string name="section_enhancement">Prompt Enhancement</string>
+    <string name="card_original_prompt">Original prompt</string>
+    <string name="card_enhanced_prompt">Enhanced prompt</string>
+    <string name="result_done">Fertig — Bild bearbeitet</string>
+    <string name="footer_type">+ Type</string>
+    <string name="action_like">Like</string>
+    <string name="action_dislike">Dislike</string>
+    <string name="action_bookmark">Bookmark</string>
+    <string name="action_share">Share</string>
+    <string name="action_rotate">Rotate</string>
+    <string name="action_download">Download</string>
+    <string name="error_general">Fehler: %s</string>
+    <string name="error_network">Netzwerkfehler. Bitte versuchen Sie es erneut.</string>
+    <string name="saved_media">Bild im Medienspeicher gespeichert</string>
+</resources>

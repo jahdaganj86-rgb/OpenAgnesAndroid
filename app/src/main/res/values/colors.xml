@@ -1,0 +1,15 @@
+<resources>
+    <color name="background">#000000</color>
+    <color name="surface">#121212</color>
+    <color name="card">#1E1E1E</color>
+    <color name="cardPrompt">#2A2A2A</color>
+    <color name="surfaceDim">#0A0A0A</color>
+    <color name="primary">#BB86FC</color>
+    <color name="onPrimary">#000000</color>
+    <color name="text">#FFFFFF</color>
+    <color name="textSecondary">#B0B0B0</color>
+    <color name="textHint">#757575</color>
+    <color name="divider">#333333</color>
+    <color name="accentGreen">#03DAC6</color>
+    <color name="accentRed">#CF6679</color>
+</resources>
