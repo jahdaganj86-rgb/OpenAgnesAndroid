@@ -58,13 +58,13 @@ class ImageEditRepository private constructor(
                     val response = api.chatCompletions("Bearer $apiKey", body)
                     when {
                         response.isSuccessful -> {
-                            response.body?.choices?.firstOrNull()?.message?.content?.firstOrNull()?.text
+                            response.body()?.choices?.firstOrNull()?.message?.content?.firstOrNull()?.text
                                 ?: throw IOException("Enhance: empty response")
                         }
-                        response.code == 401 -> throw IOException("Enhance: 401 unauthorized")
-                        response.code == 429, response.code in 500..599 ->
-                            throw IOException("Enhance: retryable ${response.code}")
-                        else -> throw IOException("Enhance: ${response.code} ${response.errorBody?.string() ?: ""}")
+                        response.code() == 401 -> throw IOException("Enhance: 401 unauthorized")
+                        response.code() == 429 || response.code() in 500..599 ->
+                            throw IOException("Enhance: retryable ${response.code()}")
+                        else -> throw IOException("Enhance: ${response.code()} ${response.errorBody()?.string() ?: ""}")
                     }
                 }
             } catch (e: Throwable) {

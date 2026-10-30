@@ -3,10 +3,11 @@ package com.openagnes.app.api
 import com.google.gson.Gson
 import com.openagnes.app.model.EditRequest
 import com.openagnes.app.model.EditResponse
-import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 class ImageEditClient private constructor(
@@ -23,14 +24,14 @@ class ImageEditClient private constructor(
 
     suspend fun edit(apiKey: String, request: EditRequest): String {
         val json = gson.toJson(request)
-        val body = RequestBody.create(json, MediaType.Companion.parse("application/json"))
-        val request = Request.Builder()
+        val body = json.toRequestBody("application/json".toMediaType())
+        val httpRequest = Request.Builder()
             .url("https://apihub.agnes-ai.com/v1/images/generations")
             .header("Authorization", "Bearer $apiKey")
             .header("Content-Type", "application/json")
             .post(body)
             .build()
-        val response = client.newCall(request).execute()
+        val response = client.newCall(httpRequest).execute()
         if (!response.isSuccessful) {
             throw IOException("Image edit failed: ${response.code} ${response.body?.string() ?: ""}")
         }

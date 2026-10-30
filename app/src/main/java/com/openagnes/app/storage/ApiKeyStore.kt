@@ -1,6 +1,7 @@
 package com.openagnes.app.storage
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
@@ -8,7 +9,7 @@ object ApiKeyStore {
     private const val PREFS_NAME = "openagnes_prefs"
     private const val KEY_API_KEY = "api_key"
 
-    private var prefs: EncryptedSharedPreferences? = null
+    private var prefs: SharedPreferences? = null
 
     fun init(context: Context) {
         if (prefs != null) return
@@ -25,12 +26,16 @@ object ApiKeyStore {
     }
 
     fun saveApiKey(key: String): Boolean {
-        return prefs?.edit()?.putString(KEY_API_KEY, key)?.apply { commit() } ?: false
+        val editor = prefs?.edit() ?: return false
+        editor.putString(KEY_API_KEY, key)
+        return editor.commit()
     }
 
     fun getApiKey(): String? = prefs?.getString(KEY_API_KEY, null)
 
     fun clearApiKey(): Boolean {
-        return prefs?.edit()?.remove(KEY_API_KEY)?.apply { commit() } ?: false
+        val editor = prefs?.edit() ?: return false
+        editor.remove(KEY_API_KEY)
+        return editor.commit()
     }
 }

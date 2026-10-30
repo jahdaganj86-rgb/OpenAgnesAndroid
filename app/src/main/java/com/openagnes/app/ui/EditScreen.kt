@@ -1,28 +1,26 @@
 package com.openagnes.app.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
-import androidx.activity.result.contract.ActivityResultContracts.PickVisualMediaRequest
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.ContentScale
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExpansionPanel
-import androidx.compose.material3.ExpansionPanelList
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,16 +32,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.openagnes.app.R
 import com.openagnes.app.model.Skill
-import com.openagnes.app.util.ImageUtil
 import com.openagnes.app.viewmodel.EditUiState
 import com.openagnes.app.viewmodel.EditViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
@@ -62,7 +60,6 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Preview card
         Card(
             modifier = Modifier.height(180.dp).fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF121212))
@@ -70,35 +67,21 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
             Box(modifier = Modifier.fillMaxSize()) {
                 state.previewBitmap?.let {
                     Image(
-                        imageBitmap = ImageBitmap(it),
+                        it.asImageBitmap(),
+                        contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit
                     )
-                } ?: run {
-                    state.imageUri?.let {
-                        androidx.compose.foundation.Image(
-                            imageBitmap = ImageBitmap(
-                                ImageUtil.loadBitmap(LocalContext.current, it)
-                            ),
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-                }
-                if (state.imageUri == null && state.previewBitmap == null) {
-                    Text(
-                        text = "Kein Bild gewählt",
-                        color = Color(0xFF757575),
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
+                } ?: Text(
+                    text = "Kein Bild gewählt",
+                    color = Color(0xFF757575),
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
         }
 
-        // Select image row
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { pickLauncher.launch(PickVisualMediaRequest.ImageOnly) }) {
+            Button(onClick = { pickLauncher.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) }) {
                 Text(text = context.resString(R.string.button_select_image))
             }
             if (state.imageUri != null) {
@@ -110,7 +93,6 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
             }
         }
 
-        // Prompt card
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2A2A))
@@ -127,7 +109,6 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
             )
         }
 
-        // Generate
         var editing by remember { mutableStateOf(false) }
         Button(
             onClick = {
@@ -144,12 +125,10 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
             Text(text = if (editing) "Bearbeite…" else context.resString(R.string.button_generate))
         }
 
-        // Message / thoughts
         state.message?.let {
             Text(text = it, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF03DAC6))
         }
 
-        // Skills
         if (state.skills.isNotEmpty()) {
             Text(
                 text = context.resString(R.string.skills_header),
@@ -163,53 +142,23 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
             }
         }
 
-        // Prompt Enhancement section
         if (state.originalPrompt != null || state.enhancedPrompt != null) {
             Text(
                 text = context.resString(R.string.section_enhancement),
                 style = MaterialTheme.typography.titleMedium,
                 color = Color(0xFFB0B0B0)
             )
-            var origExpanded by remember { mutableStateOf(false) }
-            var enhExpanded by remember { mutableStateOf(false) }
-
-            ExpansionPanelList(
-                expanded = origExpanded,
-                onExpandedChange = { origExpanded = it }
-            ) {
-                ExpansionPanel(
-                    header = { Text(text = context.resString(R.string.card_original_prompt)) },
-                    expanded = origExpanded,
-                    onExpandedChange = { origExpanded = it }
-                ) {
-                    Text(
-                        text = state.originalPrompt ?: "",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-
-            ExpansionPanelList(
-                expanded = enhExpanded,
-                onExpandedChange = { enhExpanded = it }
-            ) {
-                ExpansionPanel(
-                    header = { Text(text = context.resString(R.string.card_enhanced_prompt)) },
-                    expanded = enhExpanded,
-                    onExpandedChange = { enhExpanded = it }
-                ) {
-                    Text(
-                        text = state.enhancedPrompt ?: "",
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
+            ExpandablePromptCard(
+                title = context.resString(R.string.card_original_prompt),
+                content = state.originalPrompt ?: ""
+            )
+            ExpandablePromptCard(
+                title = context.resString(R.string.card_enhanced_prompt),
+                content = state.enhancedPrompt ?: ""
+            )
         }
 
-        // Footer
-        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = context.resString(R.string.footer_type),
             style = MaterialTheme.typography.titleLarge,
@@ -219,12 +168,29 @@ fun EditScreen(viewModel: EditViewModel, state: EditUiState) {
 }
 
 @Composable
-fun SkillCard(name: String, chars: Int) {
+private fun ExpandablePromptCard(title: String, content: String) {
+    var expanded by remember { mutableStateOf(false) }
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = title, style = MaterialTheme.typography.titleSmall, color = Color(0xFFBB86FC))
+            if (expanded) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = content, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFFFFFFF))
+            }
+        }
+    }
+}
+
+@Composable
+fun RowScope.SkillCard(name: String, chars: Int) {
     Card(
         modifier = Modifier.weight(1f).fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
     ) {
-        androidx.compose.foundation.layout.Box(modifier = Modifier.padding(16.dp)) {
+        Box(modifier = Modifier.padding(16.dp)) {
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(4.dp)

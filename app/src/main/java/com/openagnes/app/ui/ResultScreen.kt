@@ -6,25 +6,26 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.ContentScale
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Icons
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.openagnes.app.R
+import com.openagnes.app.viewmodel.EditUiState
 import com.openagnes.app.viewmodel.EditViewModel
 
 @Composable
@@ -47,17 +48,18 @@ fun ResultScreen(
             Box(modifier = Modifier.fillMaxSize()) {
                 state.resultBitmap?.let {
                     Image(
-                        imageBitmap = ImageBitmap(it),
+                        it.asImageBitmap(),
+                        contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit
                     )
                 }
                 IconButton(
                     onClick = onDownload,
-                    modifier = Modifier.align(Alignment.TopRight).padding(8.dp)
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.FileDownload,
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_download),
                         contentDescription = context.resString(R.string.action_download)
                     )
                 }
@@ -72,15 +74,18 @@ fun ResultScreen(
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val actions = listOf(
-                Icons.Default.ThumbUp to context.resString(R.string.action_like),
-                Icons.Default.ThumbDown to context.resString(R.string.action_dislike),
-                Icons.Default.Bookmark to context.resString(R.string.action_bookmark),
-                Icons.Default.Share to context.resString(R.string.action_share),
-                Icons.Default.RotateLeft to context.resString(R.string.action_rotate)
+                R.drawable.ic_like to context.resString(R.string.action_like),
+                R.drawable.ic_dislike to context.resString(R.string.action_dislike),
+                R.drawable.ic_bookmark to context.resString(R.string.action_bookmark),
+                R.drawable.ic_share to context.resString(R.string.action_share),
+                R.drawable.ic_rotate to context.resString(R.string.action_rotate)
             )
-            actions.forEach { (icon, label) ->
+            actions.forEach { (iconRes, label) ->
                 IconButton(onClick = { }) {
-                    Icon(imageVector = icon, contentDescription = label)
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(iconRes),
+                        contentDescription = label
+                    )
                 }
             }
         }

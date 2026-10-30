@@ -1,9 +1,9 @@
 package com.openagnes.app.api
 
-import com.google.gson.GsonConverterFactory
-import com.squareup.okhttp3.OkHttpClient
-import com.squareup.okhttp3.logging.HttpLoggingInterceptor
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object ApiClient {

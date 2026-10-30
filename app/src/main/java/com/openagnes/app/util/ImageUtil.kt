@@ -1,16 +1,17 @@
 package com.openagnes.app.util
 
-import android.content.Context
 import android.content.ContentValues
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Base64
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 object ImageUtil {
     const val MAX_EDGE = 2048
@@ -62,7 +63,7 @@ object ImageUtil {
             "3:2" to 1.5,
             "21:9" to 2.3333
         )
-        return ratios.entries.minBy { Math.abs(it.value - ar) }!!.key
+        return ratios.entries.minBy { abs(it.value - ar) }!!.key
     }
 
     fun saveToMediaStore(context: Context, bitmap: Bitmap, title: String): Uri {
@@ -73,7 +74,7 @@ object ImageUtil {
         }
         val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
             ?: throw IOException("MediaStore insert returned null")
-        context.contentResolver.openOutputStream(uri, "w").use { out ->
+        context.contentResolver.openOutputStream(uri, "w")?.use { out ->
             bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
         }
         return uri

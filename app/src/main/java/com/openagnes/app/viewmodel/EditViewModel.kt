@@ -1,10 +1,10 @@
 package com.openagnes.app.viewmodel
 
 import android.app.Application
-import android.graphics.Bitmap
+import android.content.Context
 import android.net.Uri
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.openagnes.app.R
 import com.openagnes.app.model.Skill
@@ -12,17 +12,22 @@ import com.openagnes.app.repository.ImageEditRepository
 import com.openagnes.app.storage.ApiKeyStore
 import com.openagnes.app.util.ImageUtil
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class EditViewModel(application: Application) : AndroidViewModel(application) {
+class EditViewModel(application: Application) : ViewModel() {
     private val repository = ImageEditRepository.get()
+    private val appContext: Context = application
 
-    private val _uiState = androidx.lifecycle.MutableStateFlow(EditUiState())
-    val uiState: androidx.lifecycle.StateFlow<EditUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(EditUiState())
+    val uiState: StateFlow<EditUiState> = _uiState.asStateFlow()
 
     fun initApiKeyStore() {
-        ApiKeyStore.init(applicationContext)
+        ApiKeyStore.init(appContext)
     }
 
     fun saveApiKey(key: String): Boolean = ApiKeyStore.saveApiKey(key)
@@ -32,7 +37,7 @@ class EditViewModel(application: Application) : AndroidViewModel(application) {
     fun onImagePicked(uri: Uri) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                val bitmap = ImageUtil.loadBitmap(applicationContext, uri)
+                val bitmap = ImageUtil.loadBitmap(appContext, uri)
                 val scaled = ImageUtil.scaleDown(bitmap)
                 val ratio = ImageUtil.detectRatio(scaled.width, scaled.height)
                 val dataUri = ImageUtil.bitmapToDataUri(scaled)
@@ -135,7 +140,7 @@ class EditViewModel(application: Application) : AndroidViewModel(application) {
         val state = _uiState.value
         val bitmap = state.resultBitmap ?: return null
         return try {
-            ImageUtil.saveToMediaStore(applicationContext, bitmap, "OpenAgnes_${System.currentTimeMillis()}.jpg")
+            ImageUtil.saveToMediaStore(appContext, bitmap, "OpenAgnes_${System.currentTimeMillis()}.jpg")
             _uiState.update { it.copy(message = resString(R.string.saved_media)) }
             resString(R.string.saved_media)
         } catch (e: Exception) {
@@ -145,5 +150,5 @@ class EditViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun resString(id: Int, vararg args: Any): String =
-        applicationContext.getString(id, *args)
+        appContext.getString(id, *args)
 }
